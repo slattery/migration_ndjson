@@ -493,7 +493,7 @@ Found a bug or have suggestions? Please:
 
 ## License
 
-This module is part of the Yale School of the Environment digital initiatives.
+Same as drupal and sunaoka/ndjson
 
 ## Support
 
