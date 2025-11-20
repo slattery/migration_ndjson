@@ -6,3 +6,12 @@ migrate_plus.data_parser.ndjson:
       type: boolean
       label: 'Strict mode'
       description: 'When enabled (true), the migration will fail on the first malformed JSON line. When disabled (false), malformed lines are skipped with a warning logged.'
+
+migrate_plus.data_parser.ndjson_stream:
+  type: migrate_plus_data_parser
+  label: 'NDJSON parser (Streaming)'
+  mapping:
+    strict_mode:
+      type: boolean
+      label: 'Strict mode'
+      description: 'When enabled (true), the migration will fail on the first malformed JSON line. When disabled (false), malformed lines are skipped with a warning logged.'

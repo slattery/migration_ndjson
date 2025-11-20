@@ -1,8 +1,11 @@
 # Migration NDJSON
 
-A Drupal module that provides a **NDJSON data parser plugin** for **Migrate Plus**.
+A Drupal module that provides **NDJSON data parser plugins** for **Migrate Plus**.
 
-This module enables efficient, streaming import of newline-delimited JSON (NDJSON) data into Drupal. Instead of loading entire JSON files into memory, the parser processes data line-by-line, making it ideal for large datasets.
+This module enables efficient import of newline-delimited JSON (NDJSON) data into Drupal. It provides two parsers:
+
+- **`ndjson`** (non-streaming): Loads data from any source (local files, HTTP URLs, etc.) into memory. Works with all data fetchers.
+- **`ndjson_stream`** (streaming): Uses true line-by-line streaming for memory-efficient processing of large files. Only works with local files via the `file` data fetcher, and requires the `sunaoka/ndjson` library.
 
 ## What is NDJSON?
 
@@ -38,11 +41,30 @@ Example:
 
 2. The module automatically registers the `ndjson` data parser plugin with Migrate Plus.
 
+## Choosing Between `ndjson` and `ndjson_stream`
+
+### `ndjson` Parser (Non-Streaming)
+- **Use when**: Working with HTTP URLs, multiple file sources, or moderate-sized files
+- **Advantages**: Works with any data fetcher (file, http, etc.), simpler configuration
+- **Limitation**: Loads entire response into memory
+- **Data sources**: Files, HTTP APIs, any URL-based source
+
+### `ndjson_stream` Parser (Streaming)
+- **Use when**: Processing large NDJSON files that exceed available memory
+- **Advantages**: True line-by-line streaming, minimal memory overhead, fastest for large files
+- **Limitation**: Only works with local files via the `file` data fetcher
+- **Requires**: `sunaoka/ndjson` library (installed as a dependency)
+- **Data sources**: Local files only
+
+**Memory Comparison** (for a 500 MB NDJSON file):
+- `ndjson` parser: ~500 MB memory usage
+- `ndjson_stream` parser: ~2-5 MB memory usage (constant overhead)
+
 ## Configuration
 
 ### Basic Migration Setup
 
-To use the NDJSON parser in your migration, specify `data_parser_plugin: ndjson` in your migration configuration:
+To use the NDJSON parser in your migration, specify `data_parser_plugin: ndjson` (or `ndjson_stream` for streaming):
 
 ```yaml
 source:
@@ -224,18 +246,68 @@ destination:
   default_bundle: article
 ```
 
+### Example 6: Large File with Streaming Parser
+
+```yaml
+id: import_large_dataset
+label: 'Import Large Dataset (Streaming)'
+source:
+  plugin: url
+  data_fetcher_plugin: file
+  data_parser_plugin: ndjson_stream  # Use streaming parser
+  urls:
+    - 'file:///data/massive_dataset.ndjson'  # 1GB+ file
+  strict_mode: false  # Skip malformed lines
+
+process:
+  nid: id
+  title: title
+  body: description
+  created: timestamp
+
+destination:
+  plugin: entity:node
+  default_bundle: article
+```
+
+**Note**: The `ndjson_stream` parser requires the `sunaoka/ndjson` library and only works with local files.
+
 ## How It Works
+
+### Non-Streaming Parser (`ndjson`)
 
 1. **Data Fetcher** (migrate_plus): Retrieves the NDJSON data
    - Uses `file` fetcher for local files
-   - Uses `http` fetcher for URLs
+   - Uses `http` fetcher for URLs or any other source
 
-2. **NDJSON Parser** (this module): Processes the data
+2. **NDJSON Parser** (this module): Processes the data in memory
+   - Gets entire response content from data fetcher
    - Splits raw data by newlines
    - Parses each line as a separate JSON object
    - Applies `item_selector` to extract nested data
    - Skips empty lines
    - Handles errors based on `strict_mode`
+
+3. **Migrate Source** (migrate_plus): Orchestrates the process
+   - Feeds individual items to the migration
+
+4. **Migration Pipeline** (Drupal migrate): Maps and imports
+   - Applies process plugins
+   - Creates/updates entities
+
+### Streaming Parser (`ndjson_stream`)
+
+1. **File Access** (direct): Opens the local file directly
+   - Extracts file path from `file://` URLs or absolute paths
+   - Returns FALSE for http/https URLs (not supported)
+
+2. **NDJSON Streaming Parser** (this module): Processes line-by-line
+   - Uses `Sunaoka\Ndjson\NDJSON` for true streaming
+   - Reads one line at a time from the file
+   - Parses each line as a separate JSON object
+   - Applies `item_selector` to extract nested data
+   - Handles errors based on `strict_mode`
+   - Maintains minimal memory overhead (constant, not proportional to file size)
 
 3. **Migrate Source** (migrate_plus): Orchestrates the process
    - Feeds individual items to the migration
@@ -331,6 +403,29 @@ ls -la /path/to/data.ndjson
 ```
 
 For relative paths, use absolute paths or `file://` protocol.
+
+### NDJSON Streaming Parser Errors
+
+#### "NDJSON streaming parser only supports file:// URLs"
+
+**Cause**: You tried to use the `ndjson_stream` parser with an HTTP URL.
+
+**Solution**: The streaming parser only works with local files. Your options:
+1. Download the file locally and use `file://` URL
+2. Switch to the `ndjson` parser instead:
+   ```yaml
+   data_parser_plugin: ndjson  # Use non-streaming parser
+   ```
+
+#### "Cannot open NDJSON stream at @url"
+
+**Cause**: The file path is invalid or the file doesn't exist.
+
+**Solution**: Verify the file exists and the path is correct:
+```bash
+# Check if file exists
+test -f /path/to/data.ndjson && echo "File exists" || echo "File not found"
+```
 
 ## Comparison with Other Parsers
 

@@ -1,0 +1,90 @@
+# Example 4: Large File with Streaming Parser (ndjson_stream)
+#
+# This example demonstrates using the ndjson_stream parser for memory-efficient
+# processing of large NDJSON files. The streaming parser is ideal for files that
+# exceed available RAM, as it processes data line-by-line without loading the
+# entire file into memory.
+#
+# Key features:
+# - Uses Sunaoka\Ndjson\NDJSON for true streaming
+# - Minimal memory overhead (constant, regardless of file size)
+# - Only works with local files (file:// URLs or absolute paths)
+# - Same configuration options as the non-streaming parser
+
+id: example_ndjson_stream_import
+label: 'Example: Large Dataset Import (Streaming)'
+
+migration_tags:
+  - NDJSON
+  - Streaming
+  - Example
+
+source:
+  plugin: url
+  data_fetcher_plugin: file
+  data_parser_plugin: ndjson_stream  # Use streaming parser instead of ndjson
+
+  # Local file path - can be absolute or use file:// protocol
+  urls:
+    - 'file:///path/to/massive_dataset.ndjson'
+
+  # Configure behavior for malformed JSON lines
+  strict_mode: false  # Skip malformed lines and continue migration
+
+  # (Optional) Extract nested data from each NDJSON line
+  # item_selector: /record
+
+  # Define the fields available in the source data
+  fields:
+    - name: id
+      label: 'Record ID'
+      selector: id
+
+    - name: title
+      label: 'Article Title'
+      selector: title
+
+    - name: body_text
+      label: 'Article Body'
+      selector: body
+
+    - name: author_name
+      label: 'Author Name'
+      selector: author
+
+    - name: published_date
+      label: 'Publication Date'
+      selector: published
+
+  # Define unique identifier for each row
+  ids:
+    id:
+      type: integer
+
+process:
+  # Map source fields to destination fields
+  nid: id
+  title: title
+  body:
+    plugin: get
+    source: body_text
+  field_author: author_name
+  created:
+    plugin: format_date
+    source: published_date
+    from_format: 'Y-m-d'
+    to_format: 'U'
+
+destination:
+  plugin: entity:node
+  default_bundle: article
+  overwrite_properties:
+    - title
+    - body
+    - field_author
+    - created
+
+# Optional: Set migration dependencies
+# dependencies:
+#   config:
+#     - user.role.authenticated
