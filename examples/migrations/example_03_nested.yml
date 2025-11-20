@@ -1,0 +1,36 @@
+# Example 3: NDJSON with Nested Data Selection
+# This example demonstrates the item_selector feature for extracting
+# nested data from within each NDJSON line.
+#
+# If your NDJSON file contains:
+#   {"id": 1, "data": {"title": "Test", "author": "John"}}
+#   {"id": 2, "data": {"title": "Demo", "author": "Jane"}}
+#
+# Using item_selector: /data extracts just the nested data portion:
+#   {"title": "Test", "author": "John"}
+#   {"title": "Demo", "author": "Jane"}
+
+id: example_ndjson_nested
+label: 'NDJSON Import with Nested Data Extraction'
+source:
+  plugin: url
+  data_fetcher_plugin: file
+  data_parser_plugin: ndjson
+  urls:
+    - 'file:///path/to/nested-data.ndjson'
+  # item_selector: / extracts the entire line (default)
+  # item_selector: /data extracts the 'data' property
+  # item_selector: /results/items extracts nested path
+  item_selector: /data
+
+process:
+  nid:
+    plugin: skip_on_empty
+    source: id
+    method: process
+  title: title
+  body: author
+
+destination:
+  plugin: entity:node
+  default_bundle: article

@@ -1,0 +1,27 @@
+# Example 2: NDJSON with Permissive Error Handling
+# This example shows how to use strict_mode: false to skip malformed lines
+# instead of failing the entire migration.
+
+id: example_ndjson_permissive
+label: 'NDJSON Import with Error Tolerance'
+source:
+  plugin: url
+  data_fetcher_plugin: file
+  data_parser_plugin: ndjson
+  urls:
+    - 'file:///path/to/possibly/dirty/data.ndjson'
+  # strict_mode: false = skip malformed lines with warnings logged
+  # strict_mode: true = fail on first error (default)
+  strict_mode: false
+
+process:
+  nid:
+    plugin: skip_on_empty
+    source: id
+    method: process
+  title: name
+  body: description
+
+destination:
+  plugin: entity:node
+  default_bundle: article

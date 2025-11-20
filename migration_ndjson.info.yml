@@ -1,0 +1,10 @@
+name: 'Migration NDJSON'
+description: 'NDJSON data parser plugin for Migrate Plus. Enables efficient streaming of newline-delimited JSON data for large migrations.'
+type: module
+version: '10.1.0-alpha1'
+core_version_requirement: '^10 || ^11'
+dependencies:
+  - migrate_plus:migrate_plus
+  - migrate:migrate
+package: 'Migration Tools'
+author: 'Yale School of the Environment'
