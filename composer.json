@@ -1,6 +1,6 @@
 {
-  "name": "drupal/migration_ndjson",
-  "type": "drupal-module",
+  "name": "slattery/migration_ndjson",
+  "type": "drupal-custom-module",
   "description": "NDJSON data parser plugin for Migrate Plus",
   "require": {
     "php": ">=8.1",
