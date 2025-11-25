@@ -106,6 +106,12 @@ class NdjsonStream extends Json {
       return substr($url, 7);
     }
 
+    // If it looks like an drupal filesystem alias, find and return path.
+    if (str_starts_with($url, 'public://') || str_starts_with($url, 'private://')) {
+      $path = \Drupal::service('stream_wrapper_manager')->getViaUri($url)->realpath();
+      return $path;
+    }
+
     // If it looks like an absolute path, return as-is.
     if (str_starts_with($url, '/')) {
       return $url;
